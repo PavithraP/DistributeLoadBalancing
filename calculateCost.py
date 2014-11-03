@@ -97,7 +97,7 @@ def getTableNames(cur,query):
         	print "Error",e
 		return -1
 
-def getCPUUtilization(nodeId):
+def getCPUUtilization(cur,nodeId):
 	try:
 		cur.execute("SELECT CPUUtilization FROM node_info where nodeId = %d" % (nodeId))
 		val = cur.fetchone()
@@ -106,11 +106,33 @@ def getCPUUtilization(nodeId):
         	print "Error",e
 		return -1
 
-def getDiskUtilization(nodeId):
+def getDiskUtilization(cur,nodeId):
 	try:
 		cur.execute("SELECT diskUtilization FROM node_info where nodeId = %d" % (nodeId))
 		val = cur.fetchone()
 		return val[0]
+	except Exception as e:
+        	print "Error",e
+		return -1
+
+def calculateTransferCost(cur,sourceId,destId):
+	try:
+		cur.execute("SELECT noOfIntermediateHop FROM node_distance where sourceNodeId = %d and destNodeId = %d" % (sourceId,destId))
+		val = cur.fetchone()
+		print "val = ",val
+		return 3*val[0]
+	except Exception as e:
+        	print "Error",e
+		return -1
+
+def findNeighbourNode(cur,siteId):
+	neighbourNode = []
+	try:
+		cur.execute("SELECT destNodeId FROM node_distance where sourceNodeId = %d order by noOfIntermediateHop" % (siteId))
+		for row in cur.fetchall() :
+			neighbourNode.append(row[0])
+			print "neighbout node is",neighbourNode
+		return neighbourNode
 	except Exception as e:
         	print "Error",e
 		return -1
