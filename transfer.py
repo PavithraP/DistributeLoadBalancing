@@ -41,3 +41,17 @@ def transfer(cur,db,child,parent,cpuCost,diskCost,tables):
 	except Exception as e:
         		print "Error",e
 			return -1
+def removeQuery(cur,db,child,cpuCost,diskCost,parentId,tables):
+	print parentId,child
+	try:
+		cur.execute("UPDATE node_info SET CPUUtilization=CPUUtilization - %d where nodeId= %d" % (cpuCost,child))
+		cur.execute("UPDATE node_info SET diskUtilization=diskUtilization - %d where nodeId = %d" % (diskCost,child))
+		cur.execute("UPDATE node_info SET queueSize=queueSize - 1 where nodeId = %d" % (child))
+		if parentId != None:
+			for table in tables:
+				print parentId,child,table
+				cur.execute("delete from table_copy_info where parentNodeId=%d and childNodeId = %d and tableName = '%s'" % (parentId,child,table))
+		db.commit()
+	except Exception as e:
+        		print "Error here",e
+			return -1

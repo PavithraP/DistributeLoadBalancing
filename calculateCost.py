@@ -43,7 +43,7 @@ def calculateCPUcost(cur,siteId,tables):
 			noOfJoin *= val[0]
 		val = noOfJoin * joinCost
 	#	print "joincost =",val
-		return val
+		return 3*val
 	except Exception as e:
         	print "Error",e
 		return -1
@@ -60,7 +60,7 @@ def calculateDiskCost(cur,siteId,tables):
 			noOfTuples += val[0]
 		val = noOfTuples * diskAccessCost
 	#	print "diskcost",val
-		return val
+		return 3*val
 	except Exception as e:
         	print "Error",e
 		return -1
@@ -119,7 +119,7 @@ def calculateTransferCost(cur,sourceId,destId):
 	try:
 		cur.execute("SELECT noOfIntermediateHop FROM node_distance where sourceNodeId = %d and destNodeId = %d" % (sourceId,destId))
 		val = cur.fetchone()
-		print "val = ",val
+	#	print "val = ",val
 		return 3*val[0]
 	except Exception as e:
         	print "Error",e
@@ -131,7 +131,7 @@ def findNeighbourNode(cur,siteId):
 		cur.execute("SELECT destNodeId FROM node_distance where sourceNodeId = %d order by noOfIntermediateHop" % (siteId))
 		for row in cur.fetchall() :
 			neighbourNode.append(row[0])
-			print "neighbout node is",neighbourNode
+		#	print "neighbout node is",neighbourNode
 		return neighbourNode
 	except Exception as e:
         	print "Error",e
