@@ -6,8 +6,8 @@ import time
 
 db = connect()
 cur = db.cursor() 
-#nodeInfo = namedtuple("nodeInfo", "siteId cpuUtilization diskUtilization parentId tables time")
 listOfQueries = []
+listOfWaititngQueries = []
 f = open('query.txt')
 while(1 and f):
 	time.sleep(5)
@@ -15,16 +15,25 @@ while(1 and f):
 		query["time"] -= 1
 		if query["time"] == 0:
 			print "*********************query execution completed at site",query["siteId"]
-			removeQuery(cur,db,query["siteId"],query["cpuUtilization"],query["diskUtilization"],query["parentId"],query["tables"])
-	if(randint(0,1) == 1):	
-		query = f.readline()
-		if not query:
-			break
-		query = query.rstrip('\n')
-	#	query = raw_input()
-		print "query = ",query
-		tables = getTableNames(cur,query)
-		sites = getLocalSites(cur,tables)
+			removeQuery(cur,db,query["siteId"],query["cpuUtilization"],query["diskUtilization"],query["parentId"],query["tables"],query["executionTime"])
+	if(randint(0,1) == 1):
+		queryGot = 0
+		for query in listOfWaititngQueries:
+			if getCPUUtilization(cur,query["site"])<= 100 and getDiskUtilization(cur,query["site"])<= 100:
+				tables=query["tables"]
+				sites=[]
+				sites.append(query["site"])
+				queryGot = 1
+				print "query got",query["site"],sites
+				break
+		if queryGot != 1: 	
+			query = f.readline()
+			if not query:
+				break
+			query = query.rstrip('\n')
+			print "query = ",query
+			tables = getTableNames(cur,query)
+			sites = getLocalSites(cur,tables)
 		cpuThreshold = 60
 		diskThreshold = 70
 		waitingThreshold = 15
@@ -58,14 +67,16 @@ while(1 and f):
 						diskCost = (calculateDiskCost(cur,child,tables))/100
 						waitingTime = calculateWaitingTime(cur,child)
 						totalCostAtChild = cpuCost + diskCost + waitingTime
-						if totalCostAtParent > totalCostAtChild:
+						cpuUsage = getCPUUtilization(cur,child)
+						diskUsage = getDiskUtilization(cur,child)
+						if totalCostAtParent > totalCostAtChild and cpuUsage+cpuCost < 100 and diskUsage+diskCost < 100:
 							print "Parent cost",totalCostAtParent,"Child cost",totalCostAtChild
 							print "************* executing at child",child,"***************"
-							transfer(cur,db,child,site,cpuCost,diskCost,tables)
-							#q = nodeInfo(child,cpuCost,diskCost,site,tables,3)
+							transfer(cur,db,child,site,cpuCost,diskCost,tables,totalCostAtChild)
 							listOfQueries.append({"siteId":child, "cpuUtilization":cpuCost,
 									"diskUtilization":diskCost,  "parentId":site, 
-									"tables":tables, "time":2})
+									"tables":tables, "time":int(totalCostAtChild/10)+1,
+									"executionTime":int(totalCostAtChild/10)+1})
 							flag = 1
 				
 				###################### search the neighbouring node to execute the query  ###############
@@ -75,33 +86,46 @@ while(1 and f):
 					cpuCost = (calculateCPUcost(cur,neighbour,tables))/1000
 					diskCost = (calculateDiskCost(cur,neighbour,tables))/100
 					waitingTime = calculateWaitingTime(cur,neighbour)
+					cpuUsage = getCPUUtilization(cur,neighbour)
+					diskUsage = getDiskUtilization(cur,neighbour)
 					transferCost = calculateTransferCost(cur,site,neighbour)
 					totalCostAtNeighbour = cpuCost + diskCost + waitingTime + transferCost
-					if totalCostAtParent > totalCostAtNeighbour:
+					if totalCostAtParent > totalCostAtNeighbour and cpuUsage+cpuCost < 100 and diskUsage+diskCost < 100:
 						print "****************** transfering tables to node ",neighbour,"***************"
 						print "Parent cost",totalCostAtParent,"Neighbour cost",totalCostAtNeighbour
-						transfer(cur,db,neighbour,site,cpuCost,diskCost,tables)
+						transfer(cur,db,neighbour,site,cpuCost,diskCost,tables,totalCostAtNeighbour)
 						listOfQueries.append({"siteId":neighbour, "cpuUtilization":cpuCost,
 								"diskUtilization":diskCost,  "parentId":site, 
-								"tables":tables, "time":1})
-						#q = nodeInfo(neighbour,cpuCost,diskCost,site,tables,3)
-						#listOfQueries.append(q)
+								"tables":tables, "time":int(totalCostAtNeighbour/10)+1,
+									"executionTime":int(totalCostAtNeighbour/10)+1})
 						flag = 1
-				if flag == 0:
+				cpuUsage = getCPUUtilization(cur,site)
+				diskUsage = getDiskUtilization(cur,site)
+				cpuCost = (calculateCPUcost(cur,site,tables))/1000
+				diskCost = (calculateDiskCost(cur,site,tables))/100
+				if flag == 0 and cpuUsage+cpuCost < 100 and diskUsage+diskCost < 100:
+					waitingTime = calculateWaitingTime(cur,site)
 					print "******************Executing in the same node",site,"***************"
-					transfer(cur,db,site,None,cpuCost,diskCost,tables)
+					print "Parent cost",totalCostAtParent
+					transfer(cur,db,site,None,cpuCost,diskCost,tables,totalCostAtParent)
 					listOfQueries.append({"siteId":site, "cpuUtilization":cpuCost,
 							"diskUtilization":diskCost,  "parentId":None, 
-							"tables":tables, "time":3})
-					#q = nodeInfo(site,cpuCost,diskCost,None,tables,1)
-					#listOfQueries.append(q)
-			else:
+							"tables":tables, "time":int(totalCostAtParent/10)+1,
+							"executionTime":int(totalCostAtParent/10)+1})
+				else:
+					print "******************ALL ARE 100",site,"***************"
+					listOfWaititngQueries.append({"tables":tables,"site":site})
+			elif cpuUsage+cpuCost < 100 and diskUsage+diskCost < 100:
 				print "******************Executing in the same node",site,"***************"
-				transfer(cur,db,site,None,cpuCost,diskCost,tables)
+				print "Parent cost",totalCostAtParent
+				transfer(cur,db,site,None,cpuCost,diskCost,tables,totalCostAtParent)
 				listOfQueries.append({"siteId":site, "cpuUtilization":cpuCost,
 						"diskUtilization":diskCost,  "parentId":None, 
-						"tables":tables, "time":5})
-				#q = nodeInfo(site,cpuCost,diskCost,None,tables,5)
-				#listOfQueries.append(q)
+						"tables":tables, "time":int(totalCostAtParent/10)+1,
+						"executionTime":int(totalCostAtParent/10)+1})
+			else:
+				print "******************ALL ARE 100",site,"***************"
+				listOfWaititngQueries.append({"tables":tables,"site":site})
+				
 cur.close()
 db.close()

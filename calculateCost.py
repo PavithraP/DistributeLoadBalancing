@@ -43,7 +43,7 @@ def calculateCPUcost(cur,siteId,tables):
 			noOfJoin *= val[0]
 		val = noOfJoin * joinCost
 	#	print "joincost =",val
-		return 3*val
+		return val
 	except Exception as e:
         	print "Error",e
 		return -1
@@ -60,7 +60,7 @@ def calculateDiskCost(cur,siteId,tables):
 			noOfTuples += val[0]
 		val = noOfTuples * diskAccessCost
 	#	print "diskcost",val
-		return 3*val
+		return val
 	except Exception as e:
         	print "Error",e
 		return -1

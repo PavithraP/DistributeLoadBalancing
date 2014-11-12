@@ -28,12 +28,12 @@ def findNodeWithData(cur,tables,site):
 		return -1
 	
 ################################# finding sides which has tables ######################################
-def transfer(cur,db,child,parent,cpuCost,diskCost,tables):
-	print parent,child
+def transfer(cur,db,child,parent,cpuCost,diskCost,tables,totalCost):
+	queueSize = (totalCost/10)+1
 	try:
 		cur.execute("UPDATE node_info SET CPUUtilization=CPUUtilization + %d where nodeId= %d" % (cpuCost,child))
 		cur.execute("UPDATE node_info SET diskUtilization=diskUtilization + %d where nodeId = %d" % (diskCost,child))
-		cur.execute("UPDATE node_info SET queueSize=queueSize + 1 where nodeId = %d" % (child))
+		cur.execute("UPDATE node_info SET queueSize=queueSize + %d where nodeId = %d" % (queueSize,child))
 		if parent != None:
 			for table in tables:
 				cur.execute("INSERT INTO table_copy_info values(%d,%d,'%s')" % (parent,child,table))
@@ -41,12 +41,12 @@ def transfer(cur,db,child,parent,cpuCost,diskCost,tables):
 	except Exception as e:
         		print "Error",e
 			return -1
-def removeQuery(cur,db,child,cpuCost,diskCost,parentId,tables):
+def removeQuery(cur,db,child,cpuCost,diskCost,parentId,tables,time):
 	print parentId,child
 	try:
 		cur.execute("UPDATE node_info SET CPUUtilization=CPUUtilization - %d where nodeId= %d" % (cpuCost,child))
 		cur.execute("UPDATE node_info SET diskUtilization=diskUtilization - %d where nodeId = %d" % (diskCost,child))
-		cur.execute("UPDATE node_info SET queueSize=queueSize - 1 where nodeId = %d" % (child))
+		cur.execute("UPDATE node_info SET queueSize=queueSize - %d where nodeId = %d" % (time,child))
 		if parentId != None:
 			for table in tables:
 				print parentId,child,table
