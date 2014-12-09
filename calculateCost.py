@@ -31,6 +31,7 @@ def getLocalSites(cur,tables):
 			newSites.append(site)	
 	return newSites
 
+################################# calculating CPU cost ######################################
 def calculateCPUcost(cur,siteId,tables):
 	try:
 		noOfJoin = 1
@@ -48,6 +49,7 @@ def calculateCPUcost(cur,siteId,tables):
         	print "Error",e
 		return -1
 	
+################################# calculating disk cost ######################################
 def calculateDiskCost(cur,siteId,tables):
 	try:
 		noOfTuples = 0
@@ -65,6 +67,7 @@ def calculateDiskCost(cur,siteId,tables):
         	print "Error",e
 		return -1
 
+################################# calculating queuing cost ######################################
 def calculateWaitingTime(cur,siteId):
 	try:
 		cur.execute("SELECT queueSize FROM node_info where nodeId = %d" % (siteId))
@@ -97,6 +100,7 @@ def getTableNames(cur,query):
         	print "Error",e
 		return -1
 
+################################# getting CPU usage ######################################
 def getCPUUtilization(cur,nodeId):
 	try:
 		cur.execute("SELECT CPUUtilization FROM node_info where nodeId = %d" % (nodeId))
@@ -106,6 +110,7 @@ def getCPUUtilization(cur,nodeId):
         	print "Error",e
 		return -1
 
+################################# getting disk usage ######################################
 def getDiskUtilization(cur,nodeId):
 	try:
 		cur.execute("SELECT diskUtilization FROM node_info where nodeId = %d" % (nodeId))
@@ -115,6 +120,7 @@ def getDiskUtilization(cur,nodeId):
         	print "Error",e
 		return -1
 
+################################# calculating transfer cost ######################################
 def calculateTransferCost(cur,sourceId,destId):
 	try:
 		cur.execute("SELECT noOfIntermediateHop FROM node_distance where sourceNodeId = %d and destNodeId = %d" % (sourceId,destId))
